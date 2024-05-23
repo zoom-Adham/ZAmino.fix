@@ -1,21 +1,29 @@
 import time
+import json
 import websocket
-from threading import Thread
+import contextlib
 
-from ..lib.util import helpers
+from threading import Thread
+from sys import _getframe as getframe
+
+from ..lib.util import objects, helpers
 from ..lib.util.helpers import gen_deviceId
 
-
 class SocketHandler:
-    def __init__(self, client, socket_trace=False, debug=False):
+    def __init__(self, client, socket_trace = False, debug = False):
         self.socket_url = "wss://ws1.aminoapps.com"
         self.client = client
         self.debug = debug
         self.active = False
         self.headers = None
         self.socket = None
+        self.socket_thread = None
         self.reconnectTime = 180
         self.socket_thread = None
+
+        if self.socket_enabled:
+            self.reconnect_thread = Thread(target=self.reconnect_handler)
+            self.reconnect_thread.start()
 
         websocket.enableTrace(socket_trace)
 
@@ -24,15 +32,15 @@ class SocketHandler:
             time.sleep(self.reconnectTime)
 
             if self.active:
-                if self.debug:
-                    print("[socket][reconnect_handler] Reconnecting Socket")
+                if self.debug is True:
+                    print(f"[socket][reconnect_handler] Reconnecting Socket")
 
                 self.close()
                 self.run_amino_socket()
 
     def handle_message(self, ws, data):
         self.client.handle_socket_message(data)
-
+        return
     def handle_close(self, ws, close_status_code, close_msg):
         if self.debug:
             print(f"[socket][close] Socket closed: {close_status_code} - {close_msg}")
@@ -46,9 +54,9 @@ class SocketHandler:
         self.run_amino_socket()
 
     def send(self, data):
-        if self.debug:
+        if self.debug is True:
             print(f"[socket][send] Sending Data : {data}")
-
+        
         if not self.socket_thread:
             self.run_amino_socket()
             time.sleep(5)
@@ -57,8 +65,8 @@ class SocketHandler:
 
     def run_amino_socket(self):
         try:
-            if self.debug:
-                print("[socket][start] Starting Socket")
+            if self.debug is True:
+                print(f"[socket][start] Starting Socket")
 
             if self.client.sid is None:
                 return
@@ -83,20 +91,24 @@ class SocketHandler:
             self.socket_thread = Thread(target=self.socket.run_forever)
             self.socket_thread.start()
 
-            if self.debug:
-                print("[socket][start] Socket Started")
+            if self.reconnect_thread is None:
+                self.reconnect_thread = Thread(target=self.reconnect_handler)
+                self.reconnect_thread.start()
+            
+            if self.debug is True:
+                print(f"[socket][start] Socket Started")
         except Exception as e:
             print(e)
 
     def close(self):
-        if self.debug:
-            print("[socket][close] Closing Socket")
+        if self.debug is True:
+            print(f"[socket][close] Closing Socket")
 
         self.active = False
         try:
             self.socket.close()
         except Exception as closeError:
-            if self.debug:
+            if self.debug is True:
                 print(f"[socket][close] Error while closing Socket : {closeError}")
 
         return
