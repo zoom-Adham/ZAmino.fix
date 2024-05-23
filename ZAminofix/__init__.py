@@ -31,7 +31,7 @@ if newest_version and __version__ < newest_version:
   system("pip install -U ZAmino.fix")
   if name == "nt": system("cls") # This for non-unix systems ( windows , etc )
   else: system("clear") # This For Unix | Unix Like Don't Edit it please
-  print(Fore.YELLOW + f"[!] ZAmino Version : {__version__} - Made By : ZOOM + Adham")
+  print(Fore.YELLOW + f"[!] ZAmino Version : {__version__} - Made By : ZOOM + Adham" + Fore.WHITE)
 else:
-  print(Fore.YELLOW + f"[!] ZAmino Version : {__version__} - Made By : ZOOM + Adham") 
+  print(Fore.YELLOW + f"[!] ZAmino Version : {__version__} - Made By : ZOOM + Adham" + Fore.WHITE) 
 
