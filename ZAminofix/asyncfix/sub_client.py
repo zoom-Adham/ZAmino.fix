@@ -31,7 +31,7 @@ class VCHeaders:
 
 
 class SubClient(client.Client):
-    def __init__(self, comId: str = None, aminoId: str = None, *, profile: objects.UserProfile, deviceId: str = None, proxies: dict = None, certificatePath: str = None):
+    def __init__(self,community_link: str = None ,comId: str = None, aminoId: str = None, *, profile: objects.UserProfile, deviceId: str = None, proxies: dict = None, certificatePath: str = None):
         client.Client.__init__(self, deviceId=deviceId, sub=True, proxies=proxies, certificatePath=certificatePath)
         self.vc_connect = False
         self.comId = comId
@@ -43,16 +43,23 @@ class SubClient(client.Client):
         return self._init().__await__()
 
     async def _init(self):
-        if self.comId is not None:
-            self.community: objects.Community = await self.get_community_info(self.comId)
-        if self.aminoId is not None:
-            self.comId = (await client.Client().search_community(self.aminoId)).comId[0]
-            self.community: objects.Community = await client.Client().get_community_info(self.comId)
-        if self.comId is None and self.aminoId is None: raise exceptions.NoCommunity()
-        try: self.profile: objects.UserProfile = await self.get_user_info(userId=self.profile.userId)
-        except AttributeError: raise exceptions.FailedLogin()
-        except exceptions.UserUnavailable(): pass
-        return self
+        if comId is not None:
+            self.comId = comId
+            self.community: objects.Community = await self.get_community_info_async(comId)
+
+        if aminoId is not None:
+            link = "http://aminoapps.com/c/"
+            self.comId = (await self.get_from_code_async(link + aminoId)).comId
+            self.community: objects.Community = await self.get_community_info_async(self.comId)
+    
+        if comId is None and community_link is not None:
+            self.comId = (await self.get_from_code_async(community_link)).comId
+            self.community: objects.Community = await self.get_community_info_async(self.comId)
+    
+        if comId is None and aminoId is None and community_link is None: 
+            raise exceptions.NoCommunity()
+
+            return self
 
     def __del__(self):
         try:
