@@ -49,6 +49,7 @@ class SocketHandler:
         if self.debug:
             print(f"[socket][error] Socket error: {error}")
         self.active = False
+        self.previous_socket.close()
         self.run_amino_socket()
 
     def send(self, data):
