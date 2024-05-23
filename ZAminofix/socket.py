@@ -1,122 +1,149 @@
-import time
-import json
+import ssl
 import websocket
-import contextlib
+from time import sleep
+from random import randint
+from json import loads, dumps
+from datetime import datetime as dt
 
 from threading import Thread
 from sys import _getframe as getframe
 
-from .lib.util.helpers import gen_deviceId
-from .lib.util import objects, helpers
+from .lib import objects, helpers
+from .lib.helpers import gen_deviceId, inttime
 
 class SocketHandler:
-    SOCKET_URL = "wss://ws1.aminoapps.com"
-    RECONNECT_TIME = 180
-
-    def __init__(self, client, socket_trace=False, debug=False):
-        self.socket_url = self.SOCKET_URL
-        self.client = client
+    def __init__(self, client, socket_trace: bool = False, debug: bool = False):
+        self.socket_url = f"wss://ws{randint(1,4)}.aminoapps.com"
         self.debug = debug
+        self.socket = None
         self.active = False
         self.headers = None
-        self.socket = None
+        self.proxies = None
+        self.client = client
+        self.reconnectTime = 600
         self.socket_thread = None
-        self.reconnect_thread = None
-        self.previous_socket = None  # Added to keep track of the previous socket
+        self.pingTime = 10
+        self.ping_thread = None
+        self.ping_payload = dumps({"t": 116, "o": {"threadChannelUserInfoList": []}})
+
+        if self.socket_enabled:
+            self.reconnect_thread = Thread(target=self.reconnect_handler)
+            self.reconnect_thread.start()
+
+            self.ping_thread = Thread(target=self.ping_handler)
+            self.ping_thread.start()
 
         websocket.enableTrace(socket_trace)
-        self.run_amino_socket()
+
+    def new_socket_url(self):
+        self.socket_url = f"wss://ws{randint(1,4)}.aminoapps.com"
+
+    def socket_log(self, text, status: str = "INFO"):
+        if self.debug is True:
+            print("[SOCKET: {}] ({})".format(status, dt.now().strftime('%Y-%m-%d %H:%M:%S')), text)
+
+    def ping_handler(self):
+        while True:
+            sleep(self.pingTime)
+            self.socket.send(self.ping_payload)
 
     def reconnect_handler(self):
         while True:
-            time.sleep(self.RECONNECT_TIME)
+            sleep(self.reconnectTime)
+
             if self.active:
-                if self.debug:
-                    print(f"[socket][reconnect_handler] Reconnecting Socket")
                 self.close()
+                self.socket_log("Reconnecting...")
+                
                 self.run_amino_socket()
+
+    def ws_run_forever(self):
+        self.socket.run_forever(
+            sslopt={"cert_reqs": ssl.CERT_NONE},
+            skip_utf8_validation=True,
+            ping_interval=self.pingTime,
+            ping_payload=self.ping_payload
+        )
 
     def handle_message(self, ws, data):
         self.client.handle_socket_message(data)
-
-    def handle_close(self, ws, close_status_code, close_msg):
-        if self.debug:
-            print(f"[socket][close] Socket closed: {close_status_code} - {close_msg}")
-        self.active = False
-        self.previous_socket.close()
-        self.run_amino_socket()
-        
-
-    def handle_error(self, ws, error):
-        if self.debug:
-            print(f"[socket][error] Socket error: {error}")
-        self.active = False
-        self.previous_socket.close()
-        self.run_amino_socket()
+        return
 
     def send(self, data):
-        if self.debug:
-            print(f"[socket][send] Sending Data: {data}")
+        self.socket_log(f"Sending data: {data}")
         
-        if not self.socket_thread or not self.socket_thread.is_alive():
-            self.run_amino_socket()
-            time.sleep(5)
-        try:
-            self.socket.send(data)
+        try: self.socket.send(data)
         except Exception as e:
-            if self.debug:
-                print(f"[socket][send] Error sending data: {e}")
-            self.run_amino_socket()
+            self.socket_log(str(e), "ERROR")
+        
+    def handle_error(self, ws, err):
+        self.socket_log(
+            "Critical error in socket/lib/your code: {} | Socket URL: {}".format(
+                str(err).replace("\n",""), self.socket_url
+            ),
+            "ERROR"
+        )
+                
+    def handle_close(self, ws, close_code, close_msg):
+        self.socket_log(
+            "Socket {} closed: '{} = {}'!".format(
+                self.socket_url, close_code, close_msg
+            ),
+            "WARNING"
+        )
 
     def run_amino_socket(self):
         try:
-            if self.debug:
-                print(f"[socket][start] Starting Socket")
-
-            if not self.client.sid:
+            if self.client.sid is None:
                 return
 
-            final = f"{self.client.device_id}|{int(time.time() * 1000)}"
+            device = gen_deviceId() if self.client.autoDevice else self.client.device_id
+
+            final = f"{device}|{inttime()}"
+
             self.headers = {
-                "NDCDEVICEID": gen_deviceId() if self.client.autoDevice else self.client.device_id,
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "Upgrade",
+                "AUID": self.client.userId,
                 "NDCAUTH": f"sid={self.client.sid}",
+                "NDCLANG": "en",
+                "NDCDEVICEID": device,
                 "NDC-MSG-SIG": helpers.signature(final)
             }
 
+            self.new_socket_url()
             self.socket = websocket.WebSocketApp(
                 f"{self.socket_url}/?signbody={final.replace('|', '%7C')}",
-                on_message=self.handle_message,
-                on_close=self.handle_close,
-                on_error=self.handle_error,
-                header=self.headers
+                on_message = self.handle_message,
+                header = self.headers,
+                on_error = self.handle_error,
+                on_close = self.handle_close
             )
 
             self.active = True
-            self.previous_socket = self.socket
-            self.socket_thread = Thread(target=self.socket.run_forever)
+            self.socket_thread = Thread(target=self.ws_run_forever)
             self.socket_thread.start()
 
-            if not self.reconnect_thread:
+            if self.reconnect_thread is None:
                 self.reconnect_thread = Thread(target=self.reconnect_handler)
                 self.reconnect_thread.start()
             
-            if self.debug:
-                print(f"[socket][start] Socket Started")
+            self.socket_log(f"Connected to {self.socket_url}")
         except Exception as e:
-            if self.debug:
-                print(f"[socket][start] Error starting socket: {e}")
+            print(e)
 
     def close(self):
-        if self.debug:
-            print(f"[socket][close] Closing Socket")
         self.active = False
         try:
-            if self.previous_socket:
-                self.previous_socket.close()
+            self.socket.close()
+            self.socket_log(f"Closed {self.socket_url}")
         except Exception as closeError:
-            if self.debug:
-                print(f"[socket][close] Error while closing Socket: {closeError}")
+            self.socket_log(
+                "Can't close connection to {}: {}".format( self.socket_url, str(closeError).replace("\n", " ") ),
+                "ERROR"
+            )
 
+        return
 
 class Callbacks:
     def __init__(self, client):
@@ -201,7 +228,7 @@ class Callbacks:
         return self.chat_actions_end.get(key, self.default)(data)
 
     def resolve(self, data):
-        data = json.loads(data)
+        data = loads(data)
         return self.methods.get(data["t"], self.default)(data)
 
     def call(self, type, data):
