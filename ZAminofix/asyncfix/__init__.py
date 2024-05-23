@@ -1,5 +1,5 @@
-__title__ = 'Amino.fix-async'
-__author__ = 'Minori'
+__title__ = 'ZAmino.fix-Async'
+__author__ = 'NativeAdh4m'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2021-2022 Minori'
 
