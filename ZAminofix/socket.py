@@ -43,11 +43,13 @@ class SocketHandler:
         if self.debug:
             print(f"[socket][close] Socket closed: {close_status_code} - {close_msg}")
         self.active = False
+        self.run_amino_socket()
 
     def handle_error(self, ws, error):
         if self.debug:
             print(f"[socket][error] Socket error: {error}")
         self.active = False
+        self.run_amino_socket()
 
     def send(self, data):
         if self.debug:
