@@ -1,7 +1,7 @@
 __title__ = 'ZAmino.fix'
 __author__ = 'ZOOM'
 __copyright__ = 'Copyright (c) 2024 ZOOM37Z'
-__version__ = '1.1.7'
+__version__ = '1.1.8'
 
 
 
