@@ -81,7 +81,6 @@ class SocketHandler:
 
             self.socket = websocket.WebSocketApp(
                 f"{self.socket_url}/?signbody={final.replace('|', '%7C')}",
-                on_message = self.handle_message,
                 on_message=self.handle_message,
                 on_close=self.handle_close,
                 on_error=self.handle_error,
