@@ -7,7 +7,8 @@ requirements = [
     "json_minify", 
     "six",
     "aiohttp",
-    "websockets"
+    "websockets",
+    "colorama"
 ]
 
 with open("README.md", "r") as stream:
