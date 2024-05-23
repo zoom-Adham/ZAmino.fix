@@ -28,8 +28,6 @@ class SocketHandler:
         websocket.enableTrace(socket_trace)
 
     def reconnect_handler(self):
-        # Made by enchart#3410 thx
-        # Fixed by The_Phoenix#3967
         while True:
             time.sleep(self.reconnectTime)
 
@@ -43,6 +41,17 @@ class SocketHandler:
     def handle_message(self, ws, data):
         self.client.handle_socket_message(data)
         return
+    def handle_close(self, ws, close_status_code, close_msg):
+        if self.debug:
+            print(f"[socket][close] Socket closed: {close_status_code} - {close_msg}")
+        self.active = False
+        self.run_amino_socket()
+
+    def handle_error(self, ws, error):
+        if self.debug:
+            print(f"[socket][error] Socket error: {error}")
+        self.active = False
+        self.run_amino_socket()
 
     def send(self, data):
         if self.debug is True:
@@ -73,7 +82,10 @@ class SocketHandler:
             self.socket = websocket.WebSocketApp(
                 f"{self.socket_url}/?signbody={final.replace('|', '%7C')}",
                 on_message = self.handle_message,
-                header = self.headers
+                on_message=self.handle_message,
+                on_close=self.handle_close,
+                on_error=self.handle_error,
+                header=self.headers
             )
 
             self.active = True
