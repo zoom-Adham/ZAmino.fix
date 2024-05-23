@@ -45,8 +45,10 @@ class SubClient(client.Client):
             link = "http://aminoapps.com/c/"
             self.comId = self.get_from_code(link + aminoId).comId
             self.community: objects.Community = self.get_community_info(self.comId)
-
-        if comId is None and aminoId is None: raise exceptions.NoCommunity()
+        if comId is None and community_link is not None:
+            self.comId = self.get_from_code(community_link).comId
+            self.community: objects.Community = self.get_community_info(self.comId)
+        if comId is None and aminoId is None and community_link is None: raise exceptions.NoCommunity()
 
 
 
