@@ -2,7 +2,7 @@ import time
 import json
 import websocket
 import contextlib
-
+from base64 import b64decode
 from threading import Thread, Lock
 from sys import _getframe as getframe
 
