@@ -24,6 +24,7 @@ class Client(Callbacks, SocketHandler):
         self.api = "https://service.aminoapps.com/api/v1"
         self.authenticated = False
         self.configured = False
+        self.handler_socket = SOCKET_HANDLER
         self.session = httpx.Client(proxies=proxies,verify=certificatePath)
         self.autoDevice = autoDevice
 
