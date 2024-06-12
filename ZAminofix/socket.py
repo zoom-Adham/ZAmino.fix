@@ -6,7 +6,7 @@ from base64 import b64decode
 from threading import Thread, Lock
 from sys import _getframe as getframe
 
-from .lib.util.helpers import gen_deviceId,DEVICE_ACC
+from .lib.util.helpers import gen_deviceId
 from .lib.util import objects, helpers
 
 class SocketHandler:
