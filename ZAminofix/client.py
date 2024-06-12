@@ -14,7 +14,7 @@ from time import time as timestamp
 from locale import getdefaultlocale as locale
 
 from .lib.util import exceptions, headers, objects, helpers
-from .socket import Callbacks, SocketHandler,SOCKET_HANDLER
+from .socket import Callbacks, SocketHandler
 from .lib.util.helpers import gen_deviceId
 
 #@dorthegra/IDörthe#8835 thanks for support!
