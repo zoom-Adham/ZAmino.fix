@@ -206,49 +206,52 @@ class Client(Callbacks, SocketHandler):
         if self.socket_enabled:
             self.run_amino_socket()
 
-    def login(self, email: str, password: str):
+    def login(self, email: str, password: str, clientType: int = 100):
         """
         Login into an account.
 
         **Parameters**
-            - **email** : Email of the account.
-            - **password** : Password of the account.
+        - **email** : Email of the account.
+        - **password** : Password of the account.
+        - **clientType** (optional) : Type of client to use. Default is 100.
 
         **Returns**
-            - **Success** : 200 (int)
-
-            - **Fail** : :meth:`Exceptions <aminofix.lib.util.exceptions>`
+        - **Success** : 200 (int)
+        - **Fail** : :meth:`Exceptions <aminofix.lib.util.exceptions>`
         """
-
+        # Prepare the data payload for the login request
         data = json.dumps({
-            "email": email,
-            "v": 2,
-            "secret": f"0 {password}",
-            "deviceID": self.device_id,
-            "clientType": 100,
-            "action": "normal",
-            "timestamp": int(timestamp() * 1000)
-        })
+        "email": email,
+        "v": 2,
+        "secret": f"0 {password}",
+        "deviceID": self.device_id,
+        "clientType": clientType,
+        "action": "normal",
+        "timestamp": int(time.time() * 1000)
+    })
 
         response = self.session.post(f"{self.api}/g/s/auth/login", headers=self.parse_headers(data=data), data=data)
-        if response.status_code != 200: exceptions.CheckException(response.text)
+        if response.status_code != 200:
+            exceptions.CheckException(response.text)
         else:
             self.authenticated = True
             self.json = json.loads(response.text)
             self.sid = self.json["sid"]
             self.userId = self.json["account"]["uid"]
-            self.account: objects.UserProfile = objects.UserProfile(self.json["account"]).UserProfile
-            self.profile: objects.UserProfile = objects.UserProfile(self.json["userProfile"]).UserProfile
-            self.secret = self.json["secret"]
-                
+            self.account = objects.UserProfile(self.json["account"]).UserProfile
+            self.profile = objects.UserProfile(self.json["userProfile"]).UserProfile
             headers.sid = self.sid
             headers.userId = self.userId
+            if clientType == 100:
+                self.secret = self.json["secret"]
+            else:
+                self.secret = None
 
-            if self.socket_enabled:
-                self.run_amino_socket()
-                
 
-            return json.loads(response.text)
+        if self.socket_enabled:
+            self.run_amino_socket()
+
+        return json.loads(response.text)
 
     def login_phone(self, phoneNumber: str, password: str):
         """
