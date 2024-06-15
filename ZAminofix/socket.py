@@ -23,7 +23,6 @@ class SocketHandler:
         self.socket_thread = None
         self.reconnect_thread = None
         self.lock = Lock()
-        self.previous_socket = None
 
         websocket.enableTrace(socket_trace)
         self.run_amino_socket()
@@ -34,7 +33,7 @@ class SocketHandler:
             if self.active:
                 if self.debug:
                     print(f"[socket][reconnect_handler] Reconnecting Socket")
-                self.close()
+                self.close()  # Close the existing connection before reopening
                 self.run_amino_socket()
 
     def handle_message(self, ws, data):
@@ -44,14 +43,13 @@ class SocketHandler:
         if self.debug:
             print(f"[socket][close] Socket closed: {close_status_code} - {close_msg}")
         self.active = False
-        self.run_amino_socket()
-        
+        self.run_amino_socket()  # Reconnect automatically when the socket closes
 
     def handle_error(self, ws, error):
         if self.debug:
             print(f"[socket][error] Socket error: {error}")
         self.active = False
-        self.run_amino_socket()
+        self.run_amino_socket()  # Reconnect automatically on error
 
     def send(self, data):
         if self.debug:
@@ -65,7 +63,7 @@ class SocketHandler:
         except Exception as e:
             if self.debug:
                 print(f"[socket][send] Error sending data: {e}")
-            self.run_amino_socket()
+            self.run_amino_socket()  # Attempt to restart the socket if sending fails
 
     def run_amino_socket(self):
         with self.lock:
@@ -82,8 +80,10 @@ class SocketHandler:
                     "NDCAUTH": f"sid={self.client.sid}",
                     "NDC-MSG-SIG": helpers.signature(final)
                 }
-                if self.previous_socket:
-                    self.previous_socket.close()
+
+                # Ensure the previous socket is properly closed
+                if self.socket:
+                    self.socket.close()
 
                 self.socket = websocket.WebSocketApp(
                     f"{self.socket_url}/?signbody={final.replace('|', '%7C')}",
@@ -94,12 +94,12 @@ class SocketHandler:
                 )
 
                 self.active = True
-                self.previous_socket = self.socket
                 self.socket_thread = Thread(target=self.socket.run_forever)
                 self.socket_thread.start()
 
                 if not self.reconnect_thread:
                     self.reconnect_thread = Thread(target=self.reconnect_handler)
+                    self.reconnect_thread.daemon = True
                     self.reconnect_thread.start()
                 
                 if self.debug:
@@ -114,12 +114,11 @@ class SocketHandler:
                 print(f"[socket][close] Closing Socket")
             self.active = False
             try:
-                if self.previous_socket:
-                    self.previous_socket.close()
+                if self.socket:
+                    self.socket.close()
             except Exception as closeError:
                 if self.debug:
                     print(f"[socket][close] Error while closing Socket: {closeError}")
-
 
 class Callbacks:
     def __init__(self, client):
