@@ -36,7 +36,7 @@ class SubClient(client.Client):
     def __init__(self,community_link: str = None, comId: str = None, aminoId: str = None, deviceId: str = None, autoDevice: bool = False, proxies: dict = None, certificatePath: str = None):
         client.Client.__init__(self, deviceId=deviceId, sub=True, proxies=proxies, certificatePath=certificatePath)
         self.vc_connect = False
-
+        self.profile = self.profile
         if comId is not None:
             self.comId = comId
             self.community: objects.Community = self.get_community_info(comId)
@@ -483,13 +483,8 @@ class SubClient(client.Client):
         else: return response.status_code
 
     def activity_status(self, status: str):
-        if "on" in status.lower(): status = 1
-        elif "off" in status.lower(): status = 2
-        else: raise exceptions.WrongType(status)
-
         data = json.dumps({
             "onlineStatus": status,
-            "duration": 86400,
             "timestamp": int(timestamp() * 1000)
         })
         
