@@ -31,12 +31,11 @@ class VCHeaders:
 
 
 class SubClient(client.Client):
-    def __init__(self,community_link: str = None ,comId: str = None, aminoId: str = None, *, profile: objects.UserProfile, deviceId: str = None, proxies: dict = None, certificatePath: str = None):
+    def __init__(self,community_link: str = None ,comId: str = None, aminoId: str = None, *, deviceId: str = None, proxies: dict = None, certificatePath: str = None):
         client.Client.__init__(self, deviceId=deviceId, sub=True, proxies=proxies, certificatePath=certificatePath)
         self.vc_connect = False
         self.comId = comId
         self.aminoId = aminoId
-        self.profile: objects.UserProfile = profile
         self.community: objects.Community
 
     def __await__(self):
@@ -58,6 +57,7 @@ class SubClient(client.Client):
     
         if comId is None and aminoId is None and community_link is None: 
             raise exceptions.NoCommunity()
+
 
             return self
 
