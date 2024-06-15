@@ -17,7 +17,7 @@ with open("README.md", "r") as stream:
 setup(
     name="ZAmino.fix",
     author="ZOOM",
-    version="1.1.8.1",
+    version="1.1.9",
     description="Aminofix update. https://t.me/ZAminoZ",
     packages=find_packages(),
     long_description=long_description,
