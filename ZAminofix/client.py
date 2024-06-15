@@ -25,7 +25,7 @@ class Client(Callbacks, SocketHandler):
         self.authenticated = False
         self.configured = False
         self.handler_socket = SOCKET_HANDLER
-        self.session = httpx.Client(proxies=proxies,verify=certificatePath)
+        self.session = httpx.Client(proxies = proxies,verify = certificatePath,timeout = 20)
         self.autoDevice = autoDevice
 
         if sub:
